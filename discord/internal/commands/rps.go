@@ -32,8 +32,7 @@ func (r *Registry) cmdRPS(ctx *CommandContext) {
 	object := strings.ToLower(ctx.Params[0])
 
 	if !r.RPS.ValidObject(object) {
-		ctx.Reply("HEY DUMBFACE THAT IS AN INVALID OBJECT")
-		ctx.Reply(fmt.Sprintf("OBJECT MUST BE ONE OF THE FOLLOWING: %s", strings.Join(r.RPS.ObjectList(), ", ")))
+		ctx.Reply(fmt.Sprintf("HEY DUMBFACE THAT IS AN INVALID OBJECT. OBJECT MUST BE ONE OF THE FOLLOWING: %s", strings.Join(r.RPS.ObjectList(), ", ")))
 		return
 	}
 
@@ -48,10 +47,7 @@ func (r *Registry) cmdRPS(ctx *CommandContext) {
 
 	rpsName := strings.ToUpper(r.RPS.Name)
 
-	// Confirm registration
-	ctx.ReplyEphemeral("OKAY I WILL SET YOU UP THE BOMB ALSO THX 4 PLAYING")
-
-	// Self-fight detection
+	// Self-fight detection (check before confirming)
 	existing := rpsContestants[ctx.ChannelID]
 	if existing != nil && existing.UserID == ctx.UserID {
 		ctx.ReplyEphemeral("GET THE FUCK OUT OF MY FACE THIS IS NOT FIGHT CLUB YOU CANNOT FIGHT YOURSELF")
@@ -67,12 +63,14 @@ func (r *Registry) cmdRPS(ctx *CommandContext) {
 	// No existing contestant - register as first player
 	if existing == nil {
 		rpsContestants[ctx.ChannelID] = challenger
-		ctx.Reply(fmt.Sprintf("%s HAS REGISTERED FOR %s!  WHO IS BRAVE ENOUGH TO FIGHT???", strings.ToUpper(ctx.UserName), rpsName))
+		ctx.ReplyEphemeral("OKAY I WILL SET YOU UP THE BOMB ALSO THX 4 PLAYING")
+		ctx.Session.ChannelMessageSend(ctx.ChannelID, fmt.Sprintf("%s HAS REGISTERED FOR %s!  WHO IS BRAVE ENOUGH TO FIGHT???", strings.ToUpper(ctx.UserName), rpsName))
 		return
 	}
 
 	// Second player - run the fight
-	ctx.Reply(fmt.Sprintf("%s HAS REGISTERED FOR %s TO CHALLENGE %s...", strings.ToUpper(ctx.UserName), rpsName, strings.ToUpper(existing.UserName)))
+	ctx.ReplyEphemeral("OKAY I WILL SET YOU UP THE BOMB ALSO THX 4 PLAYING")
+	ctx.Session.ChannelMessageSend(ctx.ChannelID, fmt.Sprintf("%s HAS REGISTERED FOR %s TO CHALLENGE %s...", strings.ToUpper(ctx.UserName), rpsName, strings.ToUpper(existing.UserName)))
 
 	attackerWins, tie, fightMsg := r.RPS.Fight(challenger.Object, existing.Object)
 
@@ -86,7 +84,7 @@ func (r *Registry) cmdRPS(ctx *CommandContext) {
 		text = fmt.Sprintf("BUT %s IS DEFEATED: %s", strings.ToUpper(challenger.UserName), fightMsg)
 	}
 
-	ctx.Reply(text)
+	ctx.Session.ChannelMessageSend(ctx.ChannelID, text)
 
 	// Clear the contestant for this channel
 	delete(rpsContestants, ctx.ChannelID)
